@@ -347,9 +347,17 @@ func (c Crawler) runCrawler(disc resolver, inputSet common.NodeSet) common.NodeS
 		genesis = params.DefaultGenesisBlock()
 	}
 
-	crawler := NewCrawler(genesis, c.NetworkID, c.NodeURL, inputSet, c.Workers, disc, disc.RandomNodes())
+	crawler := NewCrawler(genesis, c.makeNetworkID(genesis), c.NodeURL, inputSet, c.Workers, disc, disc.RandomNodes())
 	crawler.revalidateInterval = 10 * time.Minute
 	return crawler.Run(c.Timeout)
+}
+
+func (c Crawler) makeNetworkID(genesis *genesisT.Genesis) uint64 {
+	netID := genesis.GetNetworkID()
+	if netID != nil {
+		return *netID
+	}
+	return c.NetworkID
 }
 
 // makeGenesis is the pendant to utils.MakeGenesis
