@@ -15,6 +15,13 @@ Features:
 
 Project is still in an early stage, contribution and testing is welcomed. You can run manually each part of the software for development purposes or deploy whole production ready stack with Docker.
 
+_Isaac_
+
+- [ ] does not seem to filter on forkid (is not network specific)
+  - [ ] does not parse or store forkid; only used in handshake protocol
+- [ ] does not handle DNS discovery; only enode bootnodes lists
+- [ ] does not request or store node neighbors (no network graph possible)
+
 ### Frontend
 
 #### Development
