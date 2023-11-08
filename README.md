@@ -25,6 +25,11 @@ For local development with debugging, remoting, etc:
 1. And then `npm install` then `npm start`
 1. Run tests to make sure the data processing is working good. `npm test`
 
+_Isaac_
+
+This didn't work for me. So I instead set up a Caddyfile to serve the site and proxy the API.
+Use: `caddy run` from the project root. This is only a development configuration, rather than the production-facing nginx configuration also included. 
+
 #### Production
 
 To deploy this web app:
