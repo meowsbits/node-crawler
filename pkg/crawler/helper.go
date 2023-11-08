@@ -50,6 +50,18 @@ func listen(ln *enode.LocalNode, addr string) *net.UDPConn {
 
 func (c Crawler) parseBootnodes() ([]*enode.Node, error) {
 	bootnodes := params.MainnetBootnodes
+	if c.Sepolia {
+		bootnodes = params.SepoliaBootnodes
+	}
+	if c.Goerli {
+		bootnodes = params.GoerliBootnodes
+	}
+	if c.Classic {
+		bootnodes = params.ClassicBootnodes
+	}
+	if c.Mordor {
+		bootnodes = params.MordorBootnodes
+	}
 	if len(c.Bootnodes) != 0 {
 		bootnodes = c.Bootnodes
 	}
