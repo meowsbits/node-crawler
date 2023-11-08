@@ -3,6 +3,8 @@ package vparser
 import (
 	"reflect"
 	"testing"
+
+	"github.com/go-test/deep"
 )
 
 func TestParseVersionString(t *testing.T) {
@@ -39,6 +41,54 @@ func TestParseVersionString(t *testing.T) {
 				Language: LanguageInfo{
 					Name:    "go",
 					Version: "1.16.3",
+				},
+			},
+		},
+		{
+			name: "perfect-case core-geth",
+			// CoreGeth/EthereumClassic/v1.12.8-stable-654bc751/linux-amd64/go1.18.3
+			// CoreGeth/ETCMCgethNode/v1.12.10-stable-4d217763/windows-amd64/go1.18.5
+			args: "CoreGeth/v1.12.16-unstable-bd227f23-20231103/linux-amd64/go1.21.3",
+			want: &ParsedInfo{
+				Name: "coregeth",
+				Version: Version{
+					Major: 1,
+					Minor: 12,
+					Patch: 16,
+					Tag:   "unstable",
+					Date:  "20231103",
+					Build: "bd227f23",
+				},
+				Os: OSInfo{
+					Os:           "linux",
+					Architecture: "amd64",
+				},
+				Language: LanguageInfo{
+					Name:    "go",
+					Version: "1.21.3",
+				},
+			},
+		},
+		{
+			name: "perfect-case core-geth w/ id",
+			args: "CoreGeth/ETCMCgethNode/v1.12.10-stable-4d217763/windows-amd64/go1.18.5",
+			want: &ParsedInfo{
+				Name:  "coregeth",
+				Label: "etcmcgethnode",
+				Version: Version{
+					Major: 1,
+					Minor: 12,
+					Patch: 10,
+					Tag:   "stable",
+					Build: "4d217763",
+				},
+				Os: OSInfo{
+					Os:           "windows",
+					Architecture: "amd64",
+				},
+				Language: LanguageInfo{
+					Name:    "go",
+					Version: "1.18.5",
 				},
 			},
 		},
@@ -144,7 +194,12 @@ func TestParseVersionString(t *testing.T) {
 
 	for _, tt := range test_data {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ParseVersionString(tt.args); !reflect.DeepEqual(got, tt.want) {
+			got := ParseVersionString(tt.args)
+			if !reflect.DeepEqual(got, tt.want) {
+				deltas := deep.Equal(got, tt.want)
+				for _, line := range deltas {
+					t.Log(line)
+				}
 				t.Errorf("ParseVersionString() = %v, want %v", got, tt.want)
 			}
 		})

@@ -5,6 +5,7 @@ go 1.20
 require (
 	github.com/ethereum/go-ethereum v1.12.2
 	github.com/fjl/memsize v0.0.1
+	github.com/go-test/deep v1.0.8
 	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/golang-lru v1.0.2
 	github.com/mattn/go-colorable v0.1.13
