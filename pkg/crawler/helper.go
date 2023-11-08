@@ -58,6 +58,10 @@ func (c Crawler) parseBootnodes() ([]*enode.Node, error) {
 	}
 	if c.Classic {
 		bootnodes = params.ClassicBootnodes
+		bootnodes = []string{
+			"enode://ce7cbef463c5bac7e310a1ad2279975d8a5b38627f462cd6157a8bd310641ae9e33aae7634afc8b102be864491cba8dd33c9343b94674ba86be8afc74f4721a9@159.203.56.33:30369",
+			// "enode://5e85df7bc6d529647cf9a417162784a89b7ccf2b8e1570fadb6fdf9fa025c8ec2257825d1ec5d7357a6f49898fdfbd9c4c56d22645dbe8b8a6aa67dacbcf3ecc@157.230.152.87:30303",
+		}
 	}
 	if c.Mordor {
 		bootnodes = params.MordorBootnodes
