@@ -43,6 +43,8 @@ type Crawler struct {
 	Workers    uint64
 	Sepolia    bool
 	Goerli     bool
+	Classic    bool
+	Mordor     bool
 
 	NodeDB *enode.DB
 }
@@ -358,6 +360,12 @@ func (c Crawler) makeGenesis() *genesisT.Genesis {
 	}
 	if c.Goerli {
 		return params.DefaultGoerliGenesisBlock()
+	}
+	if c.Classic {
+		return params.DefaultClassicGenesisBlock()
+	}
+	if c.Mordor {
+		return params.DefaultMordorGenesisBlock()
 	}
 
 	return params.DefaultGenesisBlock()
