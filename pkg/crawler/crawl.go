@@ -22,10 +22,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p/discover"
 	"github.com/ethereum/go-ethereum/p2p/enode"
+	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/params/types/genesisT"
 	"github.com/ethereum/node-crawler/pkg/common"
 	"github.com/ethereum/node-crawler/pkg/crawlerdb"
 	"github.com/oschwald/geoip2-golang"
@@ -49,7 +50,7 @@ type Crawler struct {
 type crawler struct {
 	output common.NodeSet
 
-	genesis   *core.Genesis
+	genesis   *genesisT.Genesis
 	networkID uint64
 	nodeURL   string
 
@@ -77,7 +78,7 @@ type resolver interface {
 }
 
 func NewCrawler(
-	genesis *core.Genesis,
+	genesis *genesisT.Genesis,
 	networkID uint64,
 	nodeURL string,
 	input common.NodeSet,
@@ -341,7 +342,7 @@ func (c Crawler) discv4(inputSet common.NodeSet) common.NodeSet {
 func (c Crawler) runCrawler(disc resolver, inputSet common.NodeSet) common.NodeSet {
 	genesis := c.makeGenesis()
 	if genesis == nil {
-		genesis = core.DefaultGenesisBlock()
+		genesis = params.DefaultGenesisBlock()
 	}
 
 	crawler := NewCrawler(genesis, c.NetworkID, c.NodeURL, inputSet, c.Workers, disc, disc.RandomNodes())
@@ -351,13 +352,13 @@ func (c Crawler) runCrawler(disc resolver, inputSet common.NodeSet) common.NodeS
 
 // makeGenesis is the pendant to utils.MakeGenesis
 // with local flags instead of global flags.
-func (c Crawler) makeGenesis() *core.Genesis {
+func (c Crawler) makeGenesis() *genesisT.Genesis {
 	if c.Sepolia {
-		return core.DefaultSepoliaGenesisBlock()
+		return params.DefaultSepoliaGenesisBlock()
 	}
 	if c.Goerli {
-		return core.DefaultGoerliGenesisBlock()
+		return params.DefaultGoerliGenesisBlock()
 	}
 
-	return core.DefaultGenesisBlock()
+	return params.DefaultGenesisBlock()
 }

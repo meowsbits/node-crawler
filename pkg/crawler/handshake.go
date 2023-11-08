@@ -17,7 +17,8 @@ import (
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/p2p/rlpx"
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/params/types/ctypes"
+	"github.com/ethereum/go-ethereum/params/types/genesisT"
 	"github.com/ethereum/node-crawler/pkg/common"
 
 	"github.com/pkg/errors"
@@ -28,7 +29,7 @@ var (
 	lastStatusUpdate time.Time
 )
 
-func getClientInfo(genesis *core.Genesis, networkID uint64, nodeURL string, n *enode.Node) (*common.ClientInfo, error) {
+func getClientInfo(genesis *genesisT.Genesis, networkID uint64, nodeURL string, n *enode.Node) (*common.ClientInfo, error) {
 	var info common.ClientInfo
 
 	conn, sk, err := dial(n)
@@ -57,7 +58,8 @@ func getClientInfo(genesis *core.Genesis, networkID uint64, nodeURL string, n *e
 		return nil, errors.Wrap(err, "cannot set conn deadline")
 	}
 
-	s := getStatus(genesis.Config, uint32(conn.negotiatedProtoVersion), genesis.ToBlock().Hash(), networkID, nodeURL)
+	genesisHash := core.GenesisToBlock(genesis, nil).Hash()
+	s := getStatus(genesis.Config, uint32(conn.negotiatedProtoVersion), genesisHash, networkID, nodeURL)
 	if err = conn.Write(s); err != nil {
 		return nil, err
 	}
@@ -146,7 +148,7 @@ func readHello(conn *Conn, info *common.ClientInfo) error {
 	}
 }
 
-func getStatus(config *params.ChainConfig, version uint32, genesis ethCommon.Hash, network uint64, nodeURL string) *Status {
+func getStatus(config ctypes.ChainConfigurator, version uint32, genesis ethCommon.Hash, network uint64, nodeURL string) *Status {
 	if _status == nil {
 		_status = &Status{
 			ProtocolVersion: version,
