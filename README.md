@@ -22,6 +22,46 @@ _Isaac_
 - [ ] does not handle DNS discovery; only enode bootnodes lists
 - [ ] does not request or store node neighbors (no network graph possible)
 
+### Isaac's development workflow
+
+- T1: `run-crawl.sh`
+- T2: `run-api.sh`
+- T3: `cd frontend && npm run build && caddy run`
+
+The `run*.sh` files are not checked in. Their contents below:
+
+```sh
+dix 23-11-08T10:14:05 ~/dev/ethereum/node-crawler classic *
+ls -lshart run*.sh
+4.0K -rwxrwxr-x 1 ia ia 188 Nov  8 08:14 run-api.sh
+4.0K -rwxrwxr-x 1 ia ia 314 Nov  8 08:59 run-crawl.sh
+van 23-11-08T10:14:15 ~/dev/ethereum/node-crawler classic *
+cat run*.sh
+#!/usr/bin/env bash
+
+go build -o ./build/bin/node-crawler ./cmd/crawler
+
+./build/bin/node-crawler api \
+  --busy-timeout 3000 \
+  --crawler-db ./data/crawler.db \
+  --api-db ./data/api.db
+#!/usr/bin/env bash
+
+go build -o ./build/bin/node-crawler ./cmd/crawler
+
+./build/bin/node-crawler \
+  --verbosity 4 \
+  --log.debug \
+  crawl \
+  --classic \
+  --busy-timeout 3000 \
+  --timeout 10m \
+  --workers 16 \
+  --crawler-db ./data/crawler.db \
+  --geoipdb ./GeoLite2-Country_20231107/GeoLite2-Country.mmdb
+
+```
+
 ### Frontend
 
 #### Development
