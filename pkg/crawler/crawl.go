@@ -256,6 +256,21 @@ func (c *crawler) updateNode(n *enode.Node) {
 		node.LastResponse = node.LastCheck
 	}
 
+	/*
+		We can usually derive fork id from the ENR.
+		readStatus also garners the forkid from the status message.
+
+		var eth struct {
+			ForkID forkid.ID
+			Tail   []rlp.RawValue `rlp:"tail"`
+		}
+		if err := nn.Load(enr.WithEntry("eth", &eth)); err != nil {
+			log.Error("enr.load", "error", err)
+			return
+		}
+		node.Info.ForkID = eth.ForkID
+	*/
+
 	// Store/update node in output set.
 	if node.Score <= 0 {
 		log.Info("Removing node", "id", n.ID())
