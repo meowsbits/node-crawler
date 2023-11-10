@@ -190,6 +190,14 @@ func TestParseVersionString(t *testing.T) {
 			args: "Geth/enode://91a3c3d5e76b0acf05d9abddee959f1bcbc7c91537d2629288a9edd7a3df90acaa46ffba0e0e5d49a20598e0960ac458d76eb8fa92a1d64938c0a3a3d60f8be4@127.0.0.1:21000/v1.10.0-stable(quorum-v22.1.0)/linux-amd64/go1.17.2",
 			want: nil,
 		},
+		/*
+			Encountered, unhandled errors:
+			Version string is invalid: linux-amd64
+			 -> Error Parsing: 'Geth/v1.2.11-e3acd735-20231031/linux-amd64/go1.20.5/10', {geth v1.2.11-e3acd735-20231031 {0 0 0 amd64   true} {go1.20.5 } { 10}}
+			Version string is invalid: linux-amd64
+			 -> Error Parsing: 'Geth/v1.2.11-e3acd735-20231031/linux-amd64/go1.20.5/14', {geth v1.2.11-e3acd735-20231031 {0 0 0 amd64   true} {go1.20.5 } { 14}}
+
+		*/
 	}
 
 	for _, tt := range test_data {
