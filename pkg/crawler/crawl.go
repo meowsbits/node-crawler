@@ -211,6 +211,7 @@ func (c *crawler) getClientInfoLoop() {
 				"network_id", info.NetworkID,
 				"caps", info.Capabilities,
 				"fork_id", info.ForkID,
+				"fork_id_name", common.ForkIDName(info.ForkID),
 				"height", info.Blockheight,
 				"td", info.TotalDifficulty,
 				"head", info.HeadHash,
@@ -274,17 +275,19 @@ func (c *crawler) updateNode(n *enode.Node) {
 		We can usually derive fork id from the ENR.
 		readStatus also garners the forkid from the status message.
 	*/
-	var eth struct {
-		ForkID forkid.ID
-		Tail   []rlp.RawValue `rlp:"tail"`
-	}
-	if err := nn.Load(enr.WithEntry("eth", &eth)); err == nil {
-		if node.Info == nil {
-			node.Info = &common.ClientInfo{}
+	if nn != nil && err == nil {
+		var eth struct {
+			ForkID forkid.ID
+			Tail   []rlp.RawValue `rlp:"tail"`
 		}
-		node.Info.ForkID = eth.ForkID
-	} else {
-		log.Error("enr.load", "error", err)
+		if err := nn.Load(enr.WithEntry("eth", &eth)); err == nil {
+			if node.Info == nil {
+				node.Info = &common.ClientInfo{}
+			}
+			node.Info.ForkID = eth.ForkID
+		} else {
+			log.Error("enr.load", "error", err)
+		}
 	}
 
 	// Store/update node in output set.
