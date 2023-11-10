@@ -17,11 +17,13 @@
 package crawler
 
 import (
+	"bytes"
 	"database/sql"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/forkid"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p/discover"
@@ -55,9 +57,10 @@ type Crawler struct {
 type crawler struct {
 	output common.NodeSet
 
-	genesis   *genesisT.Genesis
-	networkID uint64
-	nodeURL   string
+	genesis      *genesisT.Genesis
+	networkID    uint64
+	nodeURL      string
+	forkidFilter forkid.Filter
 
 	disc resolver
 
@@ -92,17 +95,18 @@ func NewCrawler(
 	iters ...enode.Iterator,
 ) *crawler {
 	c := &crawler{
-		output:    make(common.NodeSet, len(input)),
-		genesis:   genesis,
-		networkID: networkID,
-		nodeURL:   nodeURL,
-		disc:      disc,
-		iters:     iters,
-		inputIter: enode.IterNodes(input.Nodes()),
-		ch:        make(chan *enode.Node),
-		reqCh:     make(chan *enode.Node, 512), // TODO: define this in config
-		workers:   workers,
-		closed:    make(chan struct{}),
+		output:       make(common.NodeSet, len(input)),
+		genesis:      genesis,
+		networkID:    networkID,
+		nodeURL:      nodeURL,
+		forkidFilter: forkid.NewStaticFilter(genesis, core.GenesisToBlock(genesis, nil).Hash()),
+		disc:         disc,
+		iters:        iters,
+		inputIter:    enode.IterNodes(input.Nodes()),
+		ch:           make(chan *enode.Node),
+		reqCh:        make(chan *enode.Node, 512), // TODO: define this in config
+		workers:      workers,
+		closed:       make(chan struct{}),
 	}
 	c.iters = append(c.iters, c.inputIter)
 	// Copy input to output initially. Any nodes that fail validation
@@ -218,6 +222,13 @@ func (c *crawler) getClientInfoLoop() {
 		node.N = n
 		node.Seq = n.Seq()
 		if info != nil {
+			// If info.ForkID.Hash is empty, but the forkid from ENR is not,
+			// then don't overwrite a positive value with an empty one.
+			wireFIDEmpty := bytes.Equal(info.ForkID.Hash[:], make([]byte, 4))
+			enrFIDNonempty := node.Info != nil && !bytes.Equal(node.Info.ForkID.Hash[:], make([]byte, 4))
+			if wireFIDEmpty && enrFIDNonempty {
+				info.ForkID = node.Info.ForkID
+			}
 			node.Info = info
 		}
 		node.TooManyPeers = tooManyPeers
@@ -282,7 +293,17 @@ func (c *crawler) updateNode(n *enode.Node) {
 		delete(c.output, n.ID())
 	} else {
 		log.Info("Updating node", "id", n.ID(), "seq", n.Seq(), "score", node.Score)
-		c.reqCh <- n
+
+		// If we have the forkid from the ENR request
+		// and it matches the crawler's genesis config,
+		// then do the wire protocol part;
+		// else, its from a different network; skip it.
+		if node.Info != nil && c.forkidFilter(node.Info.ForkID) == nil {
+			node.Score += 10 // Also: a positive network match; increment score by 10.
+			c.reqCh <- n
+		} else {
+			log.Warn("Skipping node from other network", "id", n.ID())
+		}
 		c.output[n.ID()] = node
 	}
 }
