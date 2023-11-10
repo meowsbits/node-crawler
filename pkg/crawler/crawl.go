@@ -27,6 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/forkid"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p/discover"
+	"github.com/ethereum/go-ethereum/p2p/dnsdisc"
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/p2p/enr"
 	"github.com/ethereum/go-ethereum/params"
@@ -39,17 +40,18 @@ import (
 
 type Crawler struct {
 	// These are probably from flags
-	NetworkID  uint64
-	NodeURL    string
-	ListenAddr string
-	NodeKey    string
-	Bootnodes  []string
-	Timeout    time.Duration
-	Workers    uint64
-	Sepolia    bool
-	Goerli     bool
-	Classic    bool
-	Mordor     bool
+	NetworkID    uint64
+	NodeURL      string
+	ListenAddr   string
+	NodeKey      string
+	Bootnodes    []string
+	DNSBootnodes []string
+	Timeout      time.Duration
+	Workers      uint64
+	Sepolia      bool
+	Goerli       bool
+	Classic      bool
+	Mordor       bool
 
 	NodeDB *enode.DB
 }
@@ -257,7 +259,7 @@ func (c *crawler) updateNode(n *enode.Node) {
 	if err != nil {
 		if node.Score == 0 {
 			// Node doesn't implement EIP-868.
-			log.Debug("Skipping node", "id", n.ID())
+			log.Debug("Skipping node", "id", n.ID(), "error", err)
 			return
 		}
 		node.Score /= 2
@@ -316,7 +318,7 @@ func (c Crawler) CrawlRound(
 	db *sql.DB,
 	geoipDB *geoip2.Reader,
 ) common.NodeSet {
-	var v4, v5 common.NodeSet
+	var v4, v5, v4dns common.NodeSet
 	var wg sync.WaitGroup
 
 	if !c.Classic && !c.Mordor {
@@ -335,13 +337,23 @@ func (c Crawler) CrawlRound(
 		log.Info("DiscV4", "nodes", len(v4.Nodes()))
 	}()
 
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		v4dns = c.dnsDiscV4(inputSet)
+		log.Info("DiscV4", "nodes", len(v4.Nodes()))
+	}()
+
 	wg.Wait()
 
-	output := make(common.NodeSet, len(v5)+len(v4))
+	output := make(common.NodeSet, len(v5)+len(v4)+len(v4dns))
 	for _, n := range v5 {
 		output[n.N.ID()] = n
 	}
 	for _, n := range v4 {
+		output[n.N.ID()] = n
+	}
+	for _, n := range v4dns {
 		output[n.N.ID()] = n
 	}
 
@@ -387,6 +399,20 @@ func (c Crawler) discv4(inputSet common.NodeSet) common.NodeSet {
 	return c.runCrawler(disc, inputSet)
 }
 
+func (c Crawler) dnsDiscV4(inputSet common.NodeSet) common.NodeSet {
+	ln, config := c.makeDiscoveryConfig()
+
+	socket := listen(ln, c.ListenAddr)
+
+	disc, err := discover.ListenV4(socket, ln, config)
+	if err != nil {
+		panic(err)
+	}
+	defer disc.Close()
+
+	return c.runCrawlerDNS(disc, inputSet)
+}
+
 func (c Crawler) runCrawler(disc resolver, inputSet common.NodeSet) common.NodeSet {
 	genesis := c.makeGenesis()
 	if genesis == nil {
@@ -394,6 +420,29 @@ func (c Crawler) runCrawler(disc resolver, inputSet common.NodeSet) common.NodeS
 	}
 
 	crawler := NewCrawler(genesis, c.makeNetworkID(genesis), c.NodeURL, inputSet, c.Workers, disc, disc.RandomNodes())
+	crawler.revalidateInterval = 10 * time.Minute
+	return crawler.Run(c.Timeout)
+}
+
+func (c Crawler) runCrawlerDNS(disc resolver, inputSet common.NodeSet) common.NodeSet {
+	genesis := c.makeGenesis()
+	if genesis == nil {
+		genesis = params.DefaultGenesisBlock()
+	}
+
+	var err error
+	c.DNSBootnodes, err = c.makeDNS()
+	if err != nil {
+		panic(err)
+	}
+
+	cl := dnsdisc.NewClient(dnsdisc.Config{})
+	iter, err := cl.NewIterator(c.DNSBootnodes...)
+	if err != nil {
+		panic(err)
+	}
+
+	crawler := NewCrawler(genesis, c.makeNetworkID(genesis), c.NodeURL, inputSet, c.Workers, disc, iter)
 	crawler.revalidateInterval = 10 * time.Minute
 	return crawler.Run(c.Timeout)
 }
