@@ -22,11 +22,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/core/forkid"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p/discover"
 	"github.com/ethereum/go-ethereum/p2p/enode"
+	"github.com/ethereum/go-ethereum/p2p/enr"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/params/types/genesisT"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/node-crawler/pkg/common"
 	"github.com/ethereum/node-crawler/pkg/crawlerdb"
 	"github.com/oschwald/geoip2-golang"
@@ -259,17 +262,19 @@ func (c *crawler) updateNode(n *enode.Node) {
 	/*
 		We can usually derive fork id from the ENR.
 		readStatus also garners the forkid from the status message.
-
-		var eth struct {
-			ForkID forkid.ID
-			Tail   []rlp.RawValue `rlp:"tail"`
-		}
-		if err := nn.Load(enr.WithEntry("eth", &eth)); err != nil {
-			log.Error("enr.load", "error", err)
-			return
+	*/
+	var eth struct {
+		ForkID forkid.ID
+		Tail   []rlp.RawValue `rlp:"tail"`
+	}
+	if err := nn.Load(enr.WithEntry("eth", &eth)); err == nil {
+		if node.Info == nil {
+			node.Info = &common.ClientInfo{}
 		}
 		node.Info.ForkID = eth.ForkID
-	*/
+	} else {
+		log.Error("enr.load", "error", err)
+	}
 
 	// Store/update node in output set.
 	if node.Score <= 0 {
